@@ -32,22 +32,32 @@ jobs:
         run: |
           set -e
 
-          echo "写 key"
+          echo "Write key"
           cat <<EOF > /tmp/deploy_key.pem
           $SERVER_SSH_KEY
           EOF
           chmod 600 /tmp/deploy_key.pem
 
-          echo "列出 JAR"
+          echo "List JAR"
           ls -lh target/
 
-          echo "测试 SCP"
+          echo "Test SCP"
           scp -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
 
-          echo "测试 SSH 杀进程"
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -f 'java -jar.*app.jar'"
+          echo "Test SSH kill process"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "
+            echo 'Checking running processes...'
+            ps aux | grep '[j]ava.*app.jar'
+            echo 'Killing existing processes...'
+            pkill -f 'java -jar.*app.jar' || kill -9 \$(pgrep -f 'java -jar.*app.jar') || true
+            sleep 2
+          "
 
-          echo "测试 SSH 启动"
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
-        
+          echo "Test SSH start"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "
+            echo 'Launching new jar...'
+            nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &
+            disown
+            echo 'Server started.'
+          "
       
