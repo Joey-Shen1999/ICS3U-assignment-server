@@ -26,19 +26,21 @@ jobs:
       # 将构建产物部署到远程服务器
       - name: Deploy to Server via SCP and SSH
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}   # 远程服务器地址（IP或域名），从Secrets获取
-          SERVER_USER: ${{ secrets.SERVER_USER }}   # SSH 用户名，从Secrets获取
-          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }} # SSH 私钥，从Secrets获取
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
-          # 将私钥写入临时文件并设置合适的权限
-          echo "$SERVER_SSH_KEY" > /tmp/deploy_key.pem
+          # 写 key 用 cat 保证多行格式
+          cat <<EOF > /tmp/deploy_key.pem
+          $SERVER_SSH_KEY
+          EOF
           chmod 600 /tmp/deploy_key.pem
 
-          # 使用 SCP 将JAR上传到远程服务器指定目录（如 /home/jojo/ics3u-server/），重命名为 app.jar
+          # 测试 ssh 连通性（调试用）
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "echo connected"
+
+          # 正式流程
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
-
-          # 通过 SSH 登录远程服务器，查找并杀掉旧的 Spring Boot 进程（如果存在）
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -f 'app.jar' || true"
-
-          # 在远程服务器后台启动新的 Spring Boot 应用，将日志输出重定向到 server.log
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
+      
