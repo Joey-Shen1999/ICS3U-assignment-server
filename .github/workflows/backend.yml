@@ -45,7 +45,7 @@ jobs:
           scp -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
 
           echo "测试 SSH 杀进程"
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -v -f 'app.jar'"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -f 'java -jar.*app.jar'"
 
           echo "测试 SSH 启动"
           ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
