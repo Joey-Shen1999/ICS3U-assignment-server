@@ -11,8 +11,6 @@ jobs:
       # 检出代码仓库
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 获取完整历史记录（可选，根据需求）
 
       # 设置 Java 环境（安装 Java 8）
       - name: Set up JDK
@@ -20,23 +18,10 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-          java-package: 'jdk'  # 显式指定 JDK
-
-      # 缓存 Maven 依赖以加速构建
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
 
       # 使用 Maven 编译打包（跳过测试）
       - name: Build with Maven
         run: mvn -B clean package -DskipTests
-
-      # 列出目标目录以调试
-      - name: List target dir for debug
-        run: ls -lh target/
 
       # 将构建产物部署到远程服务器
       - name: Deploy to Server via SCP and SSH
@@ -47,32 +32,22 @@ jobs:
         run: |
           set -e
 
-          echo "Write SSH key"
+          echo "写 key"
           cat <<EOF > /tmp/deploy_key.pem
           $SERVER_SSH_KEY
           EOF
           chmod 600 /tmp/deploy_key.pem
 
-          echo "List JAR files"
+          echo "列出 JAR"
           ls -lh target/
 
-          echo "Test SCP deployment"
+          echo "测试 SCP"
           scp -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
 
-          echo "Test SSH kill process"
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "
-            echo 'Checking running processes...'
-            ps aux | grep '[j]ava.*app.jar'
-            echo 'Killing existing processes...'
-            pkill -f 'java -jar.*app.jar' || kill -9 \$(pgrep -f 'java -jar.*app.jar') || true
-            sleep 2  # 等待进程完全停止
-          "
+          echo "测试 SSH 杀进程"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -9 -f 'java -jar.*app.jar'"
 
-          echo "Test SSH start server"
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "
-            echo 'Launching new jar...'
-            chmod 755 /home/jojo/ics3u-server/app.jar  # 确保执行权限
-            nohup java -Xmx512m -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &
-            disown
-            echo 'Server started.'
-          "
+          echo "测试 SSH 启动"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
+        
+      
