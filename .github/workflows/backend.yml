@@ -24,7 +24,7 @@ jobs:
       - name: List target dir for debug
         run: ls -lh target/
 
-      - name: Upload JAR to server via SCP
+      - name: Upload JAR via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -33,18 +33,17 @@ jobs:
           port: 22
           source: "target/ics3u-assignment-server-*.jar"
           target: "/home/jojo/ics3u-server/"
-          strip_components: 1
 
-      - name: Restart Spring Boot server via SSH
+      - name: Restart Spring Boot over SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
+          request_pty: false  # ⚡ 不请求伪终端，避免 hang 住
           script: |
             pkill -f 'ics3u-assignment-server' || true
             sleep 1
             nohup java -jar /home/jojo/ics3u-server/ics3u-assignment-server-*.jar \
               > /home/jojo/ics3u-server/server.log 2>&1 &
-            disown
