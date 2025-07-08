@@ -35,16 +35,15 @@ jobs:
           strip_components: 1
 
       - name: Restart Spring Boot server via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.2    # 推荐锁定稳定版本
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          # ✅ 不加 request_pty
-          # ❌ request_pty: true
-          timeout: 10m
-          command_timeout: 5m
+          request_pty: true
+          timeout: 1m              # SSH 连接超时，保持默认即可
+          command_timeout: 5m      # 允许最大脚本执行时间
           script: |
             echo "Stopping existing server..."
             pkill -f 'ics3u-assignment-server' || true
@@ -52,5 +51,7 @@ jobs:
             echo "Launching new jar..."
             nohup java -jar /home/jojo/ics3u-server/ics3u-assignment-server-*.jar \
               > /home/jojo/ics3u-server/server.log 2>&1 &
+            disown
             echo "Server started."
+      
       
