@@ -30,17 +30,24 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
-          # 写 key 用 cat 保证多行格式
+          set -e
+
+          echo "写 key"
           cat <<EOF > /tmp/deploy_key.pem
           $SERVER_SSH_KEY
           EOF
           chmod 600 /tmp/deploy_key.pem
 
-          # 测试 ssh 连通性（调试用）
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "echo connected"
+          echo "列出 JAR"
+          ls -lh target/
 
-          # 正式流程
-          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -f 'app.jar' || true"
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
+          echo "测试 SCP"
+          scp -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem target/*.jar $SERVER_USER@$SERVER_HOST:/home/jojo/ics3u-server/app.jar
+
+          echo "测试 SSH 杀进程"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "pkill -f 'app.jar' || true"
+
+          echo "测试 SSH 启动"
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/deploy_key.pem $SERVER_USER@$SERVER_HOST "nohup java -jar /home/jojo/ics3u-server/app.jar > /home/jojo/ics3u-server/server.log 2>&1 &"
+        
       
