@@ -41,9 +41,10 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          request_pty: true                # ✅ 请求伪终端，避免被中断
-          timeout: 5m                     # ✅ 总超时
-          command_timeout: 2m            # ✅ 单次命令超时
+          # ✅ 不加 request_pty
+          # ❌ request_pty: true
+          timeout: 10m
+          command_timeout: 5m
           script: |
             echo "Stopping existing server..."
             pkill -f 'ics3u-assignment-server' || true
@@ -51,5 +52,5 @@ jobs:
             echo "Launching new jar..."
             nohup java -jar /home/jojo/ics3u-server/ics3u-assignment-server-*.jar \
               > /home/jojo/ics3u-server/server.log 2>&1 &
-            disown
             echo "Server started."
+      
