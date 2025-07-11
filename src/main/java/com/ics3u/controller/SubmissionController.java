@@ -73,12 +73,17 @@ public class SubmissionController {
         submissionRepository.deleteById(id);
     }
 
-    // 文件上传 + 创建 Submission
+    /**
+     * 文件上传 + 创建 Submission
+     * folder参数可选，默认submissions，传downloads时会存到downloads目录
+     */
     @PostMapping("/upload")
     public ResponseEntity<?> uploadSubmission(
             @RequestParam("file") MultipartFile file,
             @RequestParam("assignmentId") Long assignmentId,
-            @RequestParam("studentId") Long studentId) {
+            @RequestParam("studentId") Long studentId,
+            @RequestParam(value = "folder", required = false, defaultValue = "submissions") String folder
+    ) {
 
         try {
             // 1. 查找 assignment 和 student
@@ -88,12 +93,12 @@ public class SubmissionController {
                 return ResponseEntity.badRequest().body("Assignment or Student not found");
             }
 
-            // 2. 保存文件到 static 目录
-            String uploadDir = System.getProperty("user.dir") + "/src/main/resources/static/uploads/submissions/";
+            // 2. 保存文件到指定文件夹（/srv/ics3u-uploads/{folder}/）
+            String uploadDir = "/srv/ics3u-uploads/" + folder + "/";
             String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
             File dest = new File(uploadDir + filename);
             dest.getParentFile().mkdirs();
-            System.out.println("上传目标路径：" + dest.getAbsolutePath()); // 可选，方便调试
+            System.out.println("上传目标路径：" + dest.getAbsolutePath());
             file.transferTo(dest);
 
             // 3. 保存 Submission 记录
@@ -102,8 +107,8 @@ public class SubmissionController {
             sub.setOwner(studentOpt.get());
             sub.setGrade(0.0);
             sub.setSubmittedAt(LocalDateTime.now());
-            // 数据库存相对路径，前端访问用 /uploads/submissions/xxxx
-            sub.setFilePath("/uploads/submissions/" + filename);
+            // 数据库存相对路径
+            sub.setFilePath("/uploads/" + folder + "/" + filename);
 
             Submission saved = submissionRepository.save(sub);
 
