@@ -1,6 +1,8 @@
 package com.ics3u.controller;
 
+import com.ics3u.entity.Assignment;
 import com.ics3u.entity.Student;
+import com.ics3u.repository.AssignmentRepository;
 import com.ics3u.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,8 @@ public class StudentController {
 
     @Autowired
     private StudentRepository studentRepository;
+    @Autowired
+    private AssignmentRepository assignmentRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Student student) {
@@ -29,7 +33,21 @@ public class StudentController {
         // 2. 密码加密（如果上线建议加密存储）
         // student.setPassword(new BCryptPasswordEncoder().encode(student.getPassword()));
         Student saved = studentRepository.save(student);
+
+        // 3. 给新用户创建默认 Assignment
+        createDefaultAssignmentForNewUser(saved);
         return ResponseEntity.ok(saved);
+    }
+
+    // 新用户注册后自动插入 Assignment 2
+    private void createDefaultAssignmentForNewUser(Student saved) {
+        Assignment assignment = new Assignment();
+        assignment.setAssignmentNumber(2);
+        assignment.setTitle("Assignment 2");
+        assignment.setDescription("本作业主要练习 Java 语言的基本数据类型（int、double、String、char、boolean），掌握基本四则运算与赋值操作，熟悉逻辑运算符的用法，能够进行简单的数据类型转换，并理解表达式的优先级。请根据 PDF 文件完成对应编程题。"); // <-- 可自定义
+        assignment.setPdfPath("assignments/assignment2.pdf");
+        assignment.setOwner(saved); // 或 setOwnerId(saved.getId())，看你的 Assignment 实体定义
+        assignmentRepository.save(assignment);
     }
 
     @PostMapping("/login")
