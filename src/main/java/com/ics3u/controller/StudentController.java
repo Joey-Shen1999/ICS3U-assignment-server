@@ -40,11 +40,11 @@ public class StudentController {
          */
         if (studentRepository.findByUsername(student.getPassword()).isPresent()) {
             String password = student.getPassword();
-            if (password.length() > 16 || password.length() <= 8 || password.toLowerCase().equals(password)
-                    || password.toUpperCase().equals(password)||!hasNumber(password) || password.contains("!")
+            if (password.length() <= 16 && password.length() >= 8 && password.toLowerCase().equals(password)
+                    && password.toUpperCase().equals(password) && !hasNumber(password) && (password.contains("!")
                     || password.contains("@") || password.contains("#") || password.contains("$")
                     || password.contains("%") || password.contains("^") || password.contains("&")
-                    || password.contains("*") || password.contains("(") || password.contains(")")) {
+                    || password.contains("*") || password.contains("(") || password.contains(")"))) {
                 return ResponseEntity.badRequest().body("密码复杂度不够，请采用以下规则:\n长度不少于 8 位，并且不大于 16位\n" +
                         "        至少包含一个大写字母\n" +
                         "        至少包含一个小写字母\n" +
