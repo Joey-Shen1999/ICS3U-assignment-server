@@ -38,20 +38,15 @@ public class StudentController {
         至少包含一个数字
         至少包含一个特殊字符（如 !@#$%^&*()）
          */
-        if (studentRepository.findByUsername(student.getPassword()).isPresent()) {
-            String password = student.getPassword();
-            if (password.length() <= 16 && password.length() >= 8 && password.toLowerCase().equals(password)
-                    && password.toUpperCase().equals(password) && !hasNumber(password) && (password.contains("!")
-                    || password.contains("@") || password.contains("#") || password.contains("$")
-                    || password.contains("%") || password.contains("^") || password.contains("&")
-                    || password.contains("*") || password.contains("(") || password.contains(")"))) {
-                return ResponseEntity.badRequest().body("密码复杂度不够，请采用以下规则:\n长度不少于 8 位，并且不大于 16位\n" +
-                        "        至少包含一个大写字母\n" +
-                        "        至少包含一个小写字母\n" +
-                        "        至少包含一个数字\n" +
-                        "        至少包含一个特殊字符（如 !@#$%^&*()）");
-            }
+        if (!isValidPassword(student.getPassword())) {
+            return ResponseEntity.badRequest().body("密码复杂度不够，请采用以下规则:\n" +
+                    "长度不少于 8 位，并且不大于 16 位\n" +
+                    "至少包含一个大写字母\n" +
+                    "至少包含一个小写字母\n" +
+                    "至少包含一个数字\n" +
+                    "至少包含一个特殊字符（如 !@#$%^&*()）");
         }
+
         // 2. 密码加密（如果上线建议加密存储）
         // student.setPassword(new BCryptPasswordEncoder().encode(student.getPassword()));
         Student saved = studentRepository.save(student);
@@ -59,6 +54,24 @@ public class StudentController {
         // 3. 给新用户创建默认 Assignment
         createDefaultAssignmentForNewUser(saved);
         return ResponseEntity.ok(saved);
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password == null || password.length() < 8 || password.length() > 16) return false;
+
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+
+        for (char ch : password.toCharArray()) {
+            if (Character.isUpperCase(ch)) hasUpper = true;
+            else if (Character.isLowerCase(ch)) hasLower = true;
+            else if (Character.isDigit(ch)) hasDigit = true;
+            else if ("!@#$%^&*()".indexOf(ch) >= 0) hasSpecial = true;
+        }
+
+        return hasUpper && hasLower && hasDigit && hasSpecial;
     }
 
     private boolean hasNumber(String password) {
